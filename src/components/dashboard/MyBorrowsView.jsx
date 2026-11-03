@@ -11,7 +11,7 @@ import {
   X,
   ArrowRight,
 } from "lucide-react";
-
+import PageHeading from "@/components/ui/PageHeading";
 import { toast } from "sonner";
 import Link from "next/link";
 

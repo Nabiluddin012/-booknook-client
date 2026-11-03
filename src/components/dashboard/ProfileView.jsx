@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import PageHeading from "@/components/ui/PageHeading";
 
 import {
   UserRound,
