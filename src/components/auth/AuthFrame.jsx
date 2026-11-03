@@ -1,18 +1,7 @@
-import Link from "next/link";
-
 export default function AuthFrame({ children }) {
   return (
     <main className="auth-page">
       <div className="auth-wrap">
-        <Link href="/" className="auth-brand">
-          <span className="auth-brand-mark">B</span>
-
-          <span>
-            BookNook
-            <small>THE READING ROOM</small>
-          </span>
-        </Link>
-
         <div className="auth-layout">
           <section className="auth-story">
             <span className="auth-eyebrow">
@@ -39,10 +28,6 @@ export default function AuthFrame({ children }) {
             {children}
           </section>
         </div>
-
-        <footer className="auth-footer">
-          © 2026 BookNook. Made for curious minds.
-        </footer>
       </div>
     </main>
   );
