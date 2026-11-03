@@ -12,6 +12,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import PageHeading from "@/components/ui/PageHeading";
+
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -64,17 +65,12 @@ export default function MyBorrowsView() {
   return (
     <main className="dashboard-page">
       <div className="dashboard-container">
-        <div className="dashboard-heading">
-          <span className="home-eyebrow">YOUR READING JOURNEY</span>
-
-          <h1>
-            My <span>Borrows.</span>
-          </h1>
-
-          <p>
-            Keep track of your borrowed books and their return dates.
-          </p>
-        </div>
+        <PageHeading
+          eyebrow="YOUR READING JOURNEY"
+          title="My"
+          accent="Borrows."
+          description="Keep track of your borrowed books and their return dates."
+        />
 
         <div className="dashboard-stat-grid">
           <div className="dashboard-stat-card">

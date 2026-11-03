@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import PageHeading from "@/components/ui/PageHeading";
+import PageHeading from "@/components/ui/PageHeading";  
 
 import {
   UserRound,
@@ -24,16 +24,12 @@ export default function ProfileView() {
   return (
     <main className="dashboard-page">
       <div className="dashboard-container">
-        <div className="dashboard-heading">
-          <span className="home-eyebrow">YOUR PERSONAL SPACE</span>
-
-          <h1>
-            My <span>Profile.</span>
-          </h1>
-
-          <p>Your BookNook account and personal information.</p>
-        </div>
-
+        <PageHeading
+            eyebrow="YOUR PERSONAL SPACE"
+            title="My"
+            accent="Profile."
+            description="Your BookNook account and personal information."
+          />
         <section className="profile-dashboard">
           <div className="profile-cover">
             <span>BOOKNOOK MEMBER</span>

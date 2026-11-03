@@ -1,7 +1,8 @@
 "use client";
-import PageHeading from "@/components/ui/PageHeading";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import PageHeading from "@/components/ui/PageHeading";
 
 import {
   BookOpen,
@@ -83,17 +84,12 @@ export default function AddBookForm() {
   return (
     <main className="dashboard-page">
       <div className="dashboard-container">
-        <div className="dashboard-heading">
-          <span className="home-eyebrow">GROW THE COLLECTION</span>
-
-          <h1>
-            Add a new <span>book.</span>
-          </h1>
-
-          <p>
-            Every new book brings a new world to our library.
-          </p>
-        </div>
+        <PageHeading
+          eyebrow="GROW THE COLLECTION"
+          title="Add a new"
+          accent="book."
+          description="Every new book brings a new world to our library."
+        />
 
         <div className="add-book-layout">
           <form

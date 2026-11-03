@@ -1,13 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
-
-<PageHeading
-  eyebrow="YOUR PERSONAL SPACE"
-  title="My"
-  accent="Profile."
-  description="Your BookNook account and personal information."
-/>
 export default function PageHeading({
   eyebrow,
   title,

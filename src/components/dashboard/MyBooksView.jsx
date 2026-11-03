@@ -1,5 +1,5 @@
 "use client";
-
+import PageHeading from "@/components/ui/PageHeading";
 import { useState } from "react";
 
 import {
@@ -64,22 +64,16 @@ export default function MyBooksView() {
   return (
     <main className="dashboard-page">
       <div className="dashboard-container">
-        <div className="dashboard-heading dashboard-heading-row">
-          <div>
-            <span className="home-eyebrow">YOUR CONTRIBUTIONS</span>
-
-            <h1>
-              My <span>Books.</span>
-            </h1>
-
-            <p>Manage and organize the books you have shared.</p>
-          </div>
-
-          <Link href="/add-book" className="dashboard-primary-button">
-            <Plus size={17} />
-            Add New Book
-          </Link>
-        </div>
+        <PageHeading
+          eyebrow="YOUR CONTRIBUTIONS"
+          title="My"
+          accent="Books."
+          description="Manage and organize the books you have shared."
+          action={{
+            href: "/add-book",
+            label: "Add New Book",
+          }}
+        />
 
         <div className="dashboard-stat-grid">
           <div className="dashboard-stat-card">
