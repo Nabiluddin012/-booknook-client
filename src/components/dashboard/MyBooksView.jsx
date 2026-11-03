@@ -1,6 +1,8 @@
 "use client";
-import PageHeading from "@/components/ui/PageHeading";
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import {
   Search,
@@ -13,52 +15,129 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-import Link from "next/link";
 import { toast } from "sonner";
 
-import { demoBooks } from "@/data/demoBooks";
+import { apiRequest } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
+import PageHeading from "@/components/ui/PageHeading";
 
 export default function MyBooksView() {
-  const [books, setBooks] = useState(demoBooks.slice(0, 5));
+  const router = useRouter();
 
+  const { data: session, isPending } = authClient.useSession();
+
+  const [books, setBooks] = useState([]);
   const [search, setSearch] = useState("");
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   const [editing, setEditing] = useState(null);
-  const [deleting, setDeleting] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  useEffect(() => {
+    if (isPending) return;
+
+    if (!session?.user) {
+      router.replace("/login?callbackUrl=%2Fmy-books");
+      return;
+    }
+
+    let active = true;
+
+    const loadBooks = async () => {
+      try {
+        setLoading(true);
+
+        const result = await apiRequest("/books?mine=true", {
+          requiresAuth: true,
+        });
+
+        if (active) {
+          setBooks(result.data || []);
+        }
+      } catch (error) {
+        if (active) {
+          toast.error(error.message || "Unable to load your books.");
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadBooks();
+
+    return () => {
+      active = false;
+    };
+  }, [session?.user?.id, isPending, router]);
 
   const filteredBooks = books.filter((book) =>
-    book.title.toLowerCase().includes(search.toLowerCase())
+    book.title.toLowerCase().includes(search.toLowerCase().trim())
   );
 
-  const handleEdit = (book) => {
-    setEditing({ ...book });
-  };
-
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
 
-    setBooks((previous) =>
-      previous.map((book) =>
-        book._id === editing._id ? editing : book
-      )
-    );
+    if (!editing || saving) return;
 
-    setEditing(null);
+    try {
+      setSaving(true);
 
-    toast.info(
-      "Preview updated locally. Database update will be connected later."
-    );
+      const result = await apiRequest(`/books/${editing._id}`, {
+        method: "PATCH",
+        requiresAuth: true,
+        body: JSON.stringify({
+          title: editing.title,
+          author: editing.author,
+          category: editing.category,
+          description: editing.description,
+          totalCopies: Number(editing.totalCopies),
+        }),
+      });
+
+      setBooks((previous) =>
+        previous.map((book) =>
+          book._id === editing._id ? result.data : book
+        )
+      );
+
+      setEditing(null);
+      toast.success(result.message || "Book updated successfully.");
+    } catch (error) {
+      toast.error(error.message || "Unable to update book.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = () => {
-    setBooks((previous) =>
-      previous.filter((book) => book._id !== deleting._id)
-    );
+  const handleDelete = async () => {
+    if (!deleteTarget || deleting) return;
 
-    setDeleting(null);
+    try {
+      setDeleting(true);
 
-    toast.info(
-      "Removed from preview only. Database deletion will be connected later."
-    );
+      const result = await apiRequest(
+        `/books/${deleteTarget._id}`,
+        {
+          method: "DELETE",
+          requiresAuth: true,
+        }
+      );
+
+      setBooks((previous) =>
+        previous.filter((book) => book._id !== deleteTarget._id)
+      );
+
+      setDeleteTarget(null);
+
+      toast.success(result.message || "Book deleted successfully.");
+    } catch (error) {
+      toast.error(error.message || "Unable to delete this book.");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -86,7 +165,7 @@ export default function MyBooksView() {
             <span>Available Copies</span>
             <strong>
               {books.reduce(
-                (total, book) => total + book.availableCopies,
+                (total, book) => total + (book.availableCopies || 0),
                 0
               )}
             </strong>
@@ -120,94 +199,100 @@ export default function MyBooksView() {
             </div>
           </div>
 
-          <div className="manage-table-wrap">
-            <table className="manage-table">
-              <thead>
-                <tr>
-                  <th>Book</th>
-                  <th>Category</th>
-                  <th>Copies</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredBooks.map((book) => (
-                  <tr key={book._id}>
-                    <td>
-                      <div className="manage-book-cell">
-                        <img src={book.image} alt={book.title} />
-
-                        <div>
-                          <strong>{book.title}</strong>
-                          <span>{book.author}</span>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>{book.category}</td>
-
-                    <td>
-                      {book.availableCopies}/{book.totalCopies}
-                    </td>
-
-                    <td>
-                      <span
-                        className={`manage-status ${
-                          book.availableCopies > 0
-                            ? "manage-status-available"
-                            : "manage-status-empty"
-                        }`}
-                      >
-                        {book.availableCopies > 0
-                          ? "Available"
-                          : "Unavailable"}
-                      </span>
-                    </td>
-
-                    <td>
-                      <div className="manage-actions">
-                        <button
-                          onClick={() => handleEdit(book)}
-                          aria-label="Edit book"
-                          title="Edit book"
-                        >
-                          <Pencil size={16} />
-                        </button>
-
-                        <button
-                          className="manage-delete-button"
-                          onClick={() => setDeleting(book)}
-                          aria-label="Delete book"
-                          title="Delete book"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-
-                {filteredBooks.length === 0 && (
+          {loading ? (
+            <div className="manage-empty">Loading your collection...</div>
+          ) : filteredBooks.length > 0 ? (
+            <div className="manage-table-wrap">
+              <table className="manage-table">
+                <thead>
                   <tr>
-                    <td colSpan="5">
-                      <div className="manage-empty">
-                        No matching books found.
-                      </div>
-                    </td>
+                    <th>Book</th>
+                    <th>Category</th>
+                    <th>Copies</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+
+                <tbody>
+                  {filteredBooks.map((book) => (
+                    <tr key={book._id}>
+                      <td>
+                        <div className="manage-book-cell">
+                          <img src={book.image} alt={book.title} />
+
+                          <div>
+                            <strong>{book.title}</strong>
+                            <span>{book.author}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td>{book.category}</td>
+
+                      <td>
+                        {book.availableCopies}/{book.totalCopies}
+                      </td>
+
+                      <td>
+                        <span
+                          className={`manage-status ${
+                            book.availableCopies > 0
+                              ? "manage-status-available"
+                              : "manage-status-empty"
+                          }`}
+                        >
+                          {book.availableCopies > 0
+                            ? "Available"
+                            : "Unavailable"}
+                        </span>
+                      </td>
+
+                      <td>
+                        <div className="manage-actions">
+                          <button
+                            onClick={() => setEditing({ ...book })}
+                            aria-label="Edit book"
+                            title="Edit book"
+                          >
+                            <Pencil size={16} />
+                          </button>
+
+                          <button
+                            className="manage-delete-button"
+                            onClick={() => setDeleteTarget(book)}
+                            aria-label="Delete book"
+                            title="Delete book"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="manage-empty">
+              {books.length === 0
+                ? "You haven't added any books yet."
+                : "No matching books found."}
+
+              <p>
+                <Link href="/add-book" className="auth-link">
+                  Add your first book
+                </Link>
+              </p>
+            </div>
+          )}
         </section>
       </div>
 
       {editing && (
         <div
           className="dashboard-modal-overlay"
-          onClick={() => setEditing(null)}
+          onClick={() => !saving && setEditing(null)}
         >
           <form
             className="dashboard-modal"
@@ -217,6 +302,7 @@ export default function MyBooksView() {
             <button
               type="button"
               className="dashboard-modal-close"
+              disabled={saving}
               onClick={() => setEditing(null)}
             >
               <X size={19} />
@@ -228,7 +314,6 @@ export default function MyBooksView() {
 
             <div className="dashboard-field">
               <label>Book Title</label>
-
               <input
                 value={editing.title}
                 onChange={(e) =>
@@ -240,7 +325,6 @@ export default function MyBooksView() {
 
             <div className="dashboard-field">
               <label>Author</label>
-
               <input
                 value={editing.author}
                 onChange={(e) =>
@@ -252,7 +336,6 @@ export default function MyBooksView() {
 
             <div className="dashboard-field">
               <label>Category</label>
-
               <select
                 value={editing.category}
                 onChange={(e) =>
@@ -269,31 +352,23 @@ export default function MyBooksView() {
 
             <div className="dashboard-field">
               <label>Total Copies</label>
-
               <input
                 type="number"
                 min="1"
+                max="1000"
                 value={editing.totalCopies}
-                onChange={(e) => {
-                  const copies = Number(e.target.value);
-
+                onChange={(e) =>
                   setEditing({
                     ...editing,
-                    totalCopies: copies,
-                    availableCopies: Math.max(
-                      0,
-                      copies -
-                        (editing.totalCopies - editing.availableCopies)
-                    ),
-                  });
-                }}
+                    totalCopies: Number(e.target.value),
+                  })
+                }
                 required
               />
             </div>
 
             <div className="dashboard-field">
               <label>Description</label>
-
               <textarea
                 rows={4}
                 value={editing.description}
@@ -307,18 +382,22 @@ export default function MyBooksView() {
               />
             </div>
 
-            <button className="dashboard-primary-button" type="submit">
+            <button
+              className="dashboard-primary-button"
+              type="submit"
+              disabled={saving}
+            >
               <Save size={17} />
-              Save Changes
+              {saving ? "Saving..." : "Save Changes"}
             </button>
           </form>
         </div>
       )}
 
-      {deleting && (
+      {deleteTarget && (
         <div
           className="dashboard-modal-overlay"
-          onClick={() => setDeleting(null)}
+          onClick={() => !deleting && setDeleteTarget(null)}
         >
           <div
             className="dashboard-confirm-modal"
@@ -332,13 +411,14 @@ export default function MyBooksView() {
 
             <p>
               Are you sure you want to remove{" "}
-              <strong>{deleting.title}</strong> from this preview?
+              <strong>{deleteTarget.title}</strong>?
             </p>
 
             <div className="confirm-actions">
               <button
-                onClick={() => setDeleting(null)}
+                onClick={() => setDeleteTarget(null)}
                 className="confirm-cancel"
+                disabled={deleting}
               >
                 Keep Book
               </button>
@@ -346,9 +426,10 @@ export default function MyBooksView() {
               <button
                 onClick={handleDelete}
                 className="confirm-delete"
+                disabled={deleting}
               >
                 <Trash2 size={15} />
-                Delete
+                {deleting ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>

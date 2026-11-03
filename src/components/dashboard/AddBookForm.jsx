@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import PageHeading from "@/components/ui/PageHeading";
 
 import {
   BookOpen,
@@ -15,9 +14,8 @@ import {
 
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
-
-
-
+import { apiRequest } from "@/lib/api";
+import PageHeading from "@/components/ui/PageHeading";
 
 const categories = [
   "Fiction",
@@ -30,10 +28,11 @@ const categories = [
 export default function AddBookForm() {
   const router = useRouter();
 
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
 
   const [preview, setPreview] = useState("");
   const [imageFile, setImageFile] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     title: "",
@@ -55,6 +54,12 @@ export default function AddBookForm() {
     return () => URL.revokeObjectURL(imageURL);
   }, [imageFile]);
 
+  useEffect(() => {
+    if (!isPending && !session?.user) {
+      router.replace("/login?callbackUrl=%2Fadd-book");
+    }
+  }, [isPending, session?.user?.id, router]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -64,22 +69,86 @@ export default function AddBookForm() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (submitting) return;
+
+    if (!session?.user) {
+      router.push("/login?callbackUrl=%2Fadd-book");
+      return;
+    }
 
     if (!imageFile) {
       toast.error("Please select a book cover image.");
       return;
     }
 
-    toast.info(
-      "Book form preview is ready. Database submission will be connected later."
-    );
+    if (imageFile.size > 5 * 1024 * 1024) {
+      toast.error("Image must be smaller than 5 MB.");
+      return;
+    }
+
+    const imgbbKey = process.env.NEXT_PUBLIC_IMGBB_API_KEY;
+
+    if (!imgbbKey) {
+      toast.error("Please configure your imgbb API key.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const uploadData = new FormData();
+      uploadData.append("image", imageFile);
+
+      const uploadResponse = await fetch(
+        `https://api.imgbb.com/1/upload?key=${encodeURIComponent(imgbbKey)}`,
+        {
+          method: "POST",
+          body: uploadData,
+        }
+      );
+
+      const uploadResult = await uploadResponse.json();
+
+      if (!uploadResponse.ok || !uploadResult.success) {
+        throw new Error("Book image upload failed.");
+      }
+
+      const imageURL =
+        uploadResult.data.display_url || uploadResult.data.url;
+
+      const result = await apiRequest("/books", {
+        method: "POST",
+        requiresAuth: true,
+        body: JSON.stringify({
+          ...form,
+          totalCopies: Number(form.totalCopies),
+          image: imageURL,
+        }),
+      });
+
+      toast.success(result.message || "Book added successfully.");
+
+      router.push("/my-books");
+      router.refresh();
+    } catch (error) {
+      toast.error(error.message || "Unable to add this book.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const removeImage = () => {
-    setImageFile(null);
-  };
+  if (isPending || !session?.user) {
+    return (
+      <main className="dashboard-page">
+        <div className="dashboard-container">
+          <div className="loading-ring" />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="dashboard-page">
@@ -107,7 +176,6 @@ export default function AddBookForm() {
 
             <div className="dashboard-field">
               <label>Book Title *</label>
-
               <input
                 name="title"
                 value={form.title}
@@ -120,7 +188,6 @@ export default function AddBookForm() {
 
             <div className="dashboard-field">
               <label>Author Name *</label>
-
               <input
                 name="author"
                 value={form.author}
@@ -134,7 +201,6 @@ export default function AddBookForm() {
             <div className="dashboard-two-fields">
               <div className="dashboard-field">
                 <label>Category *</label>
-
                 <select
                   name="category"
                   value={form.category}
@@ -142,18 +208,14 @@ export default function AddBookForm() {
                   required
                 >
                   <option value="">Select category</option>
-
                   {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
+                    <option key={category}>{category}</option>
                   ))}
                 </select>
               </div>
 
               <div className="dashboard-field">
                 <label>Total Copies *</label>
-
                 <input
                   name="totalCopies"
                   type="number"
@@ -168,7 +230,6 @@ export default function AddBookForm() {
 
             <div className="dashboard-field">
               <label>Short Description *</label>
-
               <textarea
                 name="description"
                 value={form.description}
@@ -178,7 +239,6 @@ export default function AddBookForm() {
                 maxLength={1200}
                 required
               />
-
               <span className="field-counter">
                 {form.description.length}/1200 characters
               </span>
@@ -186,26 +246,20 @@ export default function AddBookForm() {
 
             <div className="dashboard-field">
               <label>Added By</label>
-
-              <input
-                value={session?.user?.name || ""}
-                readOnly
-                placeholder="Your name"
-              />
+              <input value={session.user.name || ""} readOnly />
             </div>
 
             <div className="dashboard-field">
               <label>Email Address</label>
-
-              <input
-                value={session?.user?.email || ""}
-                readOnly
-                placeholder="Your email"
-              />
+              <input value={session.user.email || ""} readOnly />
             </div>
 
-            <button className="dashboard-primary-button" type="submit">
-              Add Book to Collection
+            <button
+              className="dashboard-primary-button"
+              type="submit"
+              disabled={submitting}
+            >
+              {submitting ? "Uploading & Saving..." : "Add Book to Collection"}
               <ArrowRight size={17} />
             </button>
           </form>
@@ -229,15 +283,10 @@ export default function AddBookForm() {
                 />
               ) : (
                 <div className="upload-placeholder">
-                  <span>
-                    <Upload size={27} />
-                  </span>
-
+                  <span><Upload size={27} /></span>
                   <strong>Upload Book Cover</strong>
-
                   <p>Click to choose an image</p>
-
-                  <small>PNG, JPG or WEBP</small>
+                  <small>PNG, JPG or WEBP · Maximum 5 MB</small>
                 </div>
               )}
 
@@ -255,26 +304,21 @@ export default function AddBookForm() {
               <button
                 type="button"
                 className="remove-image-button"
-                onClick={removeImage}
+                onClick={() => setImageFile(null)}
               >
                 <X size={15} /> Remove Image
               </button>
             )}
 
             <div className="upload-guidelines">
-              <h3>
-                <CheckCircle2 size={17} />
-                Cover Guidelines
-              </h3>
-
-              <p>Choose a clear and readable book cover.</p>
+              <h3><CheckCircle2 size={17} /> Cover Guidelines</h3>
+              <p>Choose a clear book cover.</p>
               <p>Use a portrait-oriented image where possible.</p>
               <p>Supported formats: JPG, PNG and WEBP.</p>
             </div>
 
             <div className="upload-note">
-              Image hosting will be connected to imgbb during
-              integration.
+              Images are uploaded to imgbb and saved as book image URLs.
             </div>
           </aside>
         </div>

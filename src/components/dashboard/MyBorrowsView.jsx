@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import {
   BookOpen,
@@ -11,66 +13,110 @@ import {
   X,
   ArrowRight,
 } from "lucide-react";
-import PageHeading from "@/components/ui/PageHeading";
 
 import { toast } from "sonner";
-import Link from "next/link";
 
-import { demoBooks } from "@/data/demoBooks";
+import { apiRequest } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
 
-const initialBorrows = [
-  {
-    id: "borrow-001",
-    book: demoBooks[0],
-    borrowDate: "2026-11-01",
-    returnDate: "2026-11-08",
-  },
-  {
-    id: "borrow-002",
-    book: demoBooks[1],
-    borrowDate: "2026-11-02",
-    returnDate: "2026-11-09",
-  },
-  {
-    id: "borrow-003",
-    book: demoBooks[5],
-    borrowDate: "2026-10-28",
-    returnDate: "2026-11-04",
-  },
-];
+const formatDate = (value) => {
+  if (!value) return "Not available";
 
-const formatDate = (date) =>
-  new Date(`${date}T12:00:00`).toLocaleDateString("en-US", {
+  return new Date(value).toLocaleDateString("en-US", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
+};
 
 export default function MyBorrowsView() {
-  const [borrows, setBorrows] = useState(initialBorrows);
+  const router = useRouter();
+
+  const { data: session, isPending } = authClient.useSession();
+
+  const [borrows, setBorrows] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [returning, setReturning] = useState(null);
+  const [returnLoading, setReturnLoading] = useState(false);
 
-  const handleReturn = () => {
-    setBorrows((previous) =>
-      previous.filter((item) => item.id !== returning.id)
-    );
+  useEffect(() => {
+    if (isPending) return;
 
-    setReturning(null);
+    if (!session?.user) {
+      router.replace(
+        `/login?callbackUrl=${encodeURIComponent("/my-borrows")}`
+      );
+      return;
+    }
 
-    toast.info(
-      "Preview updated locally. Actual book return will be connected later."
-    );
+    let active = true;
+
+    const loadBorrows = async () => {
+      try {
+        setLoading(true);
+
+        const result = await apiRequest("/borrows", {
+          requiresAuth: true,
+        });
+
+        if (active) {
+          setBorrows(result.data || []);
+        }
+      } catch (error) {
+        if (active) {
+          toast.error(error.message || "Unable to load borrowed books.");
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadBorrows();
+
+    return () => {
+      active = false;
+    };
+  }, [session?.user?.id, isPending, router]);
+
+  const handleReturn = async () => {
+    if (!returning || returnLoading) return;
+
+    try {
+      setReturnLoading(true);
+
+      await apiRequest(`/borrows/${returning._id}`, {
+        method: "DELETE",
+        requiresAuth: true,
+      });
+
+      setBorrows((previous) =>
+        previous.filter((item) => item._id !== returning._id)
+      );
+
+      setReturning(null);
+
+      toast.success("Book returned successfully.");
+    } catch (error) {
+      toast.error(error.message || "Unable to return this book.");
+    } finally {
+      setReturnLoading(false);
+    }
   };
 
   return (
     <main className="dashboard-page">
       <div className="dashboard-container">
-        <PageHeading
-          eyebrow="YOUR READING JOURNEY"
-          title="My"
-          accent="Borrows."
-          description="Keep track of your borrowed books and their return dates."
-        />
+        <div className="dashboard-heading">
+          <span className="home-eyebrow">YOUR READING JOURNEY</span>
+
+          <h1>
+            My <span>Borrows.</span>
+          </h1>
+
+          <p>
+            Keep track of your borrowed books and their return dates.
+          </p>
+        </div>
 
         <div className="dashboard-stat-grid">
           <div className="dashboard-stat-card">
@@ -80,8 +126,13 @@ export default function MyBorrowsView() {
           </div>
 
           <div className="dashboard-stat-card">
-            <span>Due Soon</span>
-            <strong>01</strong>
+            <span>Return Due Soon</span>
+            <strong>
+              {borrows.filter(
+                (book) => new Date(book.returnDate) <=
+                  new Date(Date.now() + 2 * 86400000)
+              ).length}
+            </strong>
             <Clock3 size={23} />
           </div>
 
@@ -104,73 +155,78 @@ export default function MyBorrowsView() {
             </Link>
           </div>
 
-          <div className="borrow-list">
-            {borrows.map((item) => (
-              <article className="borrow-item" key={item.id}>
-                <div className="borrow-item-cover">
-                  <img
-                    src={item.book.image}
-                    alt={item.book.title}
-                  />
-                </div>
-
-                <div className="borrow-item-info">
-                  <span>{item.book.category}</span>
-
-                  <h3>{item.book.title}</h3>
-
-                  <p>by {item.book.author}</p>
-
-                  <div className="borrow-item-dates">
-                    <span>
-                      <CalendarDays size={14} />
-                      Borrowed: {formatDate(item.borrowDate)}
-                    </span>
-
-                    <span>
-                      <Clock3 size={14} />
-                      Return: {formatDate(item.returnDate)}
-                    </span>
+          {loading ? (
+            <div className="borrow-empty">
+              <div className="loading-ring" />
+              <p>Loading your borrowed books...</p>
+            </div>
+          ) : borrows.length > 0 ? (
+            <div className="borrow-list">
+              {borrows.map((item) => (
+                <article className="borrow-item" key={item._id}>
+                  <div className="borrow-item-cover">
+                    <img
+                      src={item.bookImage}
+                      alt={item.bookTitle}
+                    />
                   </div>
-                </div>
 
-                <div className="borrow-item-action">
-                  <span className="manage-status manage-status-available">
-                    Borrowed
-                  </span>
+                  <div className="borrow-item-info">
+                    <span>BOOKNOOK COLLECTION</span>
 
-                  <button
-                    onClick={() => setReturning(item)}
-                    className="borrow-return-button"
-                  >
-                    <RotateCcw size={15} />
-                    Return Book
-                  </button>
-                </div>
-              </article>
-            ))}
+                    <h3>{item.bookTitle}</h3>
 
-            {borrows.length === 0 && (
-              <div className="borrow-empty">
-                <BookOpen size={42} />
+                    <p>Borrowed by you</p>
 
-                <h3>Your reading journey is waiting.</h3>
+                    <div className="borrow-item-dates">
+                      <span>
+                        <CalendarDays size={14} />
+                        Borrowed: {formatDate(item.borrowDate)}
+                      </span>
 
-                <p>You haven't borrowed any books in this preview.</p>
+                      <span>
+                        <Clock3 size={14} />
+                        Return: {formatDate(item.returnDate)}
+                      </span>
+                    </div>
+                  </div>
 
-                <Link href="/books" className="dashboard-primary-button">
-                  Explore Books <ArrowRight size={16} />
-                </Link>
-              </div>
-            )}
-          </div>
+                  <div className="borrow-item-action">
+                    <span className="manage-status manage-status-available">
+                      Borrowed
+                    </span>
+
+                    <button
+                      onClick={() => setReturning(item)}
+                      className="borrow-return-button"
+                    >
+                      <RotateCcw size={15} />
+                      Return Book
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="borrow-empty">
+              <BookOpen size={42} />
+
+              <h3>Your reading journey is waiting.</h3>
+
+              <p>You haven't borrowed any books yet.</p>
+
+              <Link href="/books" className="dashboard-primary-button">
+                Explore Books <ArrowRight size={16} />
+              </Link>
+            </div>
+          )}
         </section>
       </div>
 
       {returning && (
         <div
           className="dashboard-modal-overlay"
-          onClick={() => setReturning(null)}
+          onClick={() => !returnLoading && setReturning(null)}
         >
           <div
             className="dashboard-confirm-modal"
@@ -178,6 +234,7 @@ export default function MyBorrowsView() {
           >
             <button
               className="dashboard-modal-close"
+              disabled={returnLoading}
               onClick={() => setReturning(null)}
             >
               <X size={19} />
@@ -191,12 +248,13 @@ export default function MyBorrowsView() {
 
             <p>
               You are about to return{" "}
-              <strong>{returning.book.title}</strong>.
+              <strong>{returning.bookTitle}</strong>.
             </p>
 
             <div className="confirm-actions">
               <button
                 className="confirm-cancel"
+                disabled={returnLoading}
                 onClick={() => setReturning(null)}
               >
                 Cancel
@@ -204,10 +262,11 @@ export default function MyBorrowsView() {
 
               <button
                 className="confirm-return"
+                disabled={returnLoading}
                 onClick={handleReturn}
               >
                 <CheckCircle2 size={16} />
-                Confirm Return
+                {returnLoading ? "Returning..." : "Confirm Return"}
               </button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 "use client";
-
+import { useEffect } from "react";
+import { apiRequest } from "@/lib/api";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,6 +23,13 @@ export default function BookDetailsView({ book }) {
   const router = useRouter();
 
   const { data: session, isPending } = authClient.useSession();
+  useEffect(() => {
+  if (!isPending && !session?.user) {
+    router.replace(
+      `/login?callbackUrl=${encodeURIComponent(`/books/${book._id}`)}`
+    );
+  }
+}, [isPending, session?.user?.id, router, book._id]);
 
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -46,10 +54,24 @@ export default function BookDetailsView({ book }) {
     setModalOpen(true);
   };
 
-  const handleConfirmBorrow = () => {
-    toast.info("Borrowing will be connected to the library API in the integration phase.");
+const handleConfirmBorrow = async () => {
+  try {
+    const result = await apiRequest("/borrows", {
+      method: "POST",
+      requiresAuth: true,
+      body: JSON.stringify({
+        bookId: book._id,
+      }),
+    });
+
+    toast.success(result.message || "Book borrowed successfully.");
+
     setModalOpen(false);
-  };
+    router.refresh();
+  } catch (error) {
+    toast.error(error.message || "Unable to borrow this book.");
+  }
+};
 
   return (
     <main className="detail-page">

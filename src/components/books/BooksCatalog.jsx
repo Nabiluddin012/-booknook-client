@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Search,
   SlidersHorizontal,
   BookOpen,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import BookCard from "@/components/books/BookCard";
-import { demoBooks } from "@/data/demoBooks";
+import { apiRequest } from "@/lib/api";
 
 const categories = [
   "All Categories",
@@ -21,21 +22,52 @@ const categories = [
 ];
 
 export default function BooksCatalog() {
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All Categories");
   const [availability, setAvailability] = useState("all");
-  const [sort, setSort] = useState("title");
+  const [sort, setSort] = useState("newest");
+
+  useEffect(() => {
+    let active = true;
+
+    const loadBooks = async () => {
+      try {
+        setLoading(true);
+
+        const result = await apiRequest("/books");
+
+        if (active) {
+          setBooks(result.data || []);
+        }
+      } catch (error) {
+        if (active) {
+          toast.error(error.message || "Unable to load books.");
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadBooks();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredBooks = useMemo(() => {
-    let result = [...demoBooks];
+    let result = [...books];
 
     const term = search.toLowerCase().trim();
 
     if (term) {
       result = result.filter(
         (book) =>
-          book.title.toLowerCase().includes(term) ||
-          book.author.toLowerCase().includes(term)
+          book.title?.toLowerCase().includes(term) ||
+          book.author?.toLowerCase().includes(term)
       );
     }
 
@@ -69,14 +101,22 @@ export default function BooksCatalog() {
       );
     }
 
+    if (sort === "newest") {
+      result.sort(
+        (a, b) =>
+          new Date(b.createdAt || 0) -
+          new Date(a.createdAt || 0)
+      );
+    }
+
     return result;
-  }, [search, category, availability, sort]);
+  }, [books, search, category, availability, sort]);
 
   const clearFilters = () => {
     setSearch("");
     setCategory("All Categories");
     setAvailability("all");
-    setSort("title");
+    setSort("newest");
   };
 
   return (
@@ -92,21 +132,24 @@ export default function BooksCatalog() {
           </h1>
 
           <p>
-            Explore our collection of stories, ideas and
-            knowledge. Your next favorite book might be
-            closer than you think.
+            Explore our collection of stories, ideas and knowledge.
+            Your next favorite book might be closer than you think.
           </p>
 
           <div className="catalog-hero-stats">
             <div>
-              <strong>08</strong>
-              <span>Preview Books</span>
+              <strong>{books.length.toString().padStart(2, "0")}</strong>
+              <span>Library Books</span>
             </div>
 
             <span className="catalog-stat-line" />
 
             <div>
-              <strong>05</strong>
+              <strong>
+                {new Set(books.map((book) => book.category)).size
+                  .toString()
+                  .padStart(2, "0")}
+              </strong>
               <span>Categories</span>
             </div>
           </div>
@@ -116,15 +159,9 @@ export default function BooksCatalog() {
       <section className="catalog-container">
         <div className="catalog-toolbar">
           <div>
-            <span className="home-eyebrow">
-              FIND YOUR NEXT READ
-            </span>
-
+            <span className="home-eyebrow">FIND YOUR NEXT READ</span>
             <h2>Explore Books</h2>
-
-            <p>
-              {filteredBooks.length} books in this collection
-            </p>
+            <p>{filteredBooks.length} books in this collection</p>
           </div>
 
           <div className="catalog-search">
@@ -138,10 +175,7 @@ export default function BooksCatalog() {
             />
 
             {search && (
-              <button
-                onClick={() => setSearch("")}
-                aria-label="Clear search"
-              >
+              <button onClick={() => setSearch("")}>
                 <X size={16} />
               </button>
             )}
@@ -179,36 +213,36 @@ export default function BooksCatalog() {
               value={sort}
               onChange={(e) => setSort(e.target.value)}
             >
-              <option value="title">Sort: Title</option>
+              <option value="newest">Newest First</option>
+              <option value="title">Sort by Title</option>
               <option value="copies">Most Available</option>
             </select>
 
-            <button
-              className="catalog-reset"
-              onClick={clearFilters}
-            >
+            <button className="catalog-reset" onClick={clearFilters}>
               Reset
             </button>
           </div>
         </div>
 
-        {filteredBooks.length > 0 ? (
+        {loading ? (
+          <div className="catalog-empty">
+            <div className="loading-ring" />
+            <p>Opening the library shelves...</p>
+          </div>
+        ) : filteredBooks.length > 0 ? (
           <div className="catalog-grid">
             {filteredBooks.map((book) => (
-              <BookCard
-                key={book._id}
-                book={book}
-              />
+              <BookCard key={book._id} book={book} />
             ))}
           </div>
         ) : (
           <div className="catalog-empty">
             <BookOpen size={42} />
-
             <h3>No books found</h3>
-
             <p>
-              Try another title, author or category.
+              {books.length === 0
+                ? "No books have been added to the library yet."
+                : "Try another title, author or category."}
             </p>
 
             <button
