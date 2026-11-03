@@ -4,6 +4,10 @@ import { Toaster } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
+import "swiper/css";
+import "swiper/css/effect-fade";
+import "swiper/css/pagination";
+
 export const metadata = {
   title: {
     default: "BookNook",
