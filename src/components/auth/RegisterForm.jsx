@@ -63,14 +63,22 @@ export default function RegisterForm() {
         image: image.trim(),
       });
 
-      if (error) {
-        toast.error(error.message || "Registration failed.");
+     if (error) {
+  toast.error(error.message || "Registration failed.");
+  return;
+}
+
+const { error: logoutError } = await authClient.signOut();
+
+      if (logoutError) {
+        toast.error("Account created, but session cleanup failed. Please sign out.");
+        router.replace("/");
         return;
       }
 
-      toast.success("Account created! Please login.");
+      toast.success("Account created successfully! Please login.");
 
-      router.push("/login");
+      router.replace("/login?registered=true");
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {

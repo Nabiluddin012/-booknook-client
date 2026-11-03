@@ -31,7 +31,7 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 6,
     maxPasswordLength: 128,
-    autoSignIn: false,
+    autoSignIn: true,
   },
 
   socialProviders,
