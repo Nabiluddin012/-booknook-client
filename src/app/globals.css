@@ -3143,3 +3143,123 @@ body {
     width: 100%;
   }
 }
+
+/* Final responsive and accessibility polish */
+
+:focus-visible {
+  outline: 2px solid #d9bb83;
+  outline-offset: 4px;
+}
+
+button,
+a,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 480px) {
+  .nav-container {
+    min-height: 66px;
+  }
+
+  .site-logo-icon {
+    width: 37px;
+    height: 37px;
+  }
+
+  .site-logo-text {
+    font-size: 17px;
+  }
+
+  .nav-actions {
+    gap: 8px;
+  }
+
+  .nav-register {
+    padding: 9px 10px;
+  }
+
+  .auth-card {
+    padding: 23px 17px;
+  }
+
+  .auth-card h2 {
+    font-size: 29px;
+  }
+
+  .catalog-hero h1 {
+    font-size: 39px;
+  }
+
+  .catalog-filter-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-filter-controls select {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  .catalog-image-wrap {
+    height: 310px;
+  }
+
+  .catalog-hero-stats {
+    gap: 18px;
+  }
+
+  .detail-cover-frame {
+    height: 350px;
+  }
+
+  .detail-availability {
+    flex-wrap: wrap;
+  }
+
+  .detail-status {
+    margin-left: auto;
+  }
+
+  .borrow-item-cover {
+    width: 65px;
+    height: 88px;
+  }
+
+  .profile-main-top {
+    align-items: flex-start;
+  }
+
+  .profile-large-avatar {
+    width: 90px;
+    height: 90px;
+  }
+
+  .profile-main-info h2 {
+    font-size: 23px;
+  }
+
+  .dashboard-stat-card {
+    min-height: 100px;
+  }
+
+  .dashboard-primary-button {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .footer-bottom {
+    gap: 12px;
+    line-height: 1.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
