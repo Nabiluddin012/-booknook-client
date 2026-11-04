@@ -71,7 +71,7 @@ export default function MyBooksView() {
     return () => {
       active = false;
     };
-  }, [session?.user?.id, isPending, router]);
+  }, [session?.user, isPending, router]);
 
   const filteredBooks = books.filter((book) =>
     book.title.toLowerCase().includes(search.toLowerCase().trim())

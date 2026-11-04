@@ -1,5 +1,4 @@
 "use client";
-import { useEffect } from "react";
 import { apiRequest } from "@/lib/api";
 import { useState } from "react";
 import Link from "next/link";
@@ -23,14 +22,6 @@ export default function BookDetailsView({ book }) {
   const router = useRouter();
 
   const { data: session, isPending } = authClient.useSession();
-  useEffect(() => {
-  if (!isPending && !session?.user) {
-    router.replace(
-      `/login?callbackUrl=${encodeURIComponent(`/books/${book._id}`)}`
-    );
-  }
-}, [isPending, session?.user?.id, router, book._id]);
-
   const [modalOpen, setModalOpen] = useState(false);
 
   const available = book.availableCopies > 0;

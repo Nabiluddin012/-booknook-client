@@ -1,6 +1,9 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
 import BookDetailsView from "@/components/books/BookDetailsView";
+import PrivatePageFallback from "@/components/ui/PrivatePageFallback";
+import { requireUser } from "@/lib/require-user";
 
 async function getBook(id) {
   const apiURL = (
@@ -16,27 +19,30 @@ async function getBook(id) {
     if (!response.ok) return null;
 
     const result = await response.json();
-
     return result.data || null;
   } catch {
     return null;
   }
 }
 
-export async function generateMetadata({ params }) {
+export const metadata = {
+  title: "Book Details",
+};
+
+async function ProtectedBookDetails({ params }) {
   const { id } = await params;
+  await requireUser(`/books/${id}`);
+
   const book = await getBook(id);
-
-  return {
-    title: book?.title || "Book Details",
-  };
-}
-
-export default async function BookDetailsPage({ params }) {
-  const { id } = await params;
-  const book = await getBook(id);
-
   if (!book) notFound();
 
   return <BookDetailsView book={book} />;
+}
+
+export default function BookDetailsPage({ params }) {
+  return (
+    <Suspense fallback={<PrivatePageFallback />}>
+      <ProtectedBookDetails params={params} />
+    </Suspense>
+  );
 }

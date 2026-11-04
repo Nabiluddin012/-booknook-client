@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { BookOpen, Mail, ArrowUpRight } from "lucide-react";
 
+const projectIssuesUrl = "https://github.com/Nabiluddin012/-booknook-client/issues";
+
 export default function Footer() {
   return (
     <footer className="site-footer">
@@ -11,13 +13,11 @@ export default function Footer() {
               <span className="site-logo-icon">
                 <BookOpen size={23} />
               </span>
-
               <span className="site-logo-text">
                 BookNook
                 <small>THE READING ROOM</small>
               </span>
             </Link>
-
             <p>
               A quiet corner for curious minds. Discover new stories,
               share your favorites, and make every reading day special.
@@ -46,13 +46,18 @@ export default function Footer() {
             <a href="https://x.com" target="_blank" rel="noreferrer">
               X <ArrowUpRight size={13} />
             </a>
-            <a href="https://github.com" target="_blank" rel="noreferrer">
+            <a
+              href="https://github.com/Nabiluddin012/-booknook-client"
+              target="_blank"
+              rel="noreferrer"
+            >
               GitHub <ArrowUpRight size={13} />
             </a>
-
+            <a href={projectIssuesUrl} target="_blank" rel="noreferrer">
+              <Mail size={15} /> Contact &amp; Feedback <ArrowUpRight size={13} />
+            </a>
             <p className="footer-contact">
-              <Mail size={15} />
-              Contact information to be added
+              Questions or suggestions? Reach out through the project issue page.
             </p>
           </div>
         </div>

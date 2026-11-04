@@ -23,8 +23,8 @@ export default function NotFound() {
         <h2>This page is off the shelf.</h2>
 
         <p>
-          It seems the page you're looking for has wandered into another
-          chapter. Let's help you find your way back.
+          It seems the page you&apos;re looking for has wandered into another
+          chapter. Let&apos;s help you find your way back.
         </p>
 
         <div className="not-found-actions">

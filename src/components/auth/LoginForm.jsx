@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
@@ -10,7 +10,7 @@ import AuthFrame from "./AuthFrame";
 import GoogleSignInButton from "./GoogleSignInButton";
 
 export default function LoginForm() {
-  const router = useRouter();
+  
   const searchParams = useSearchParams();
 
   const [email, setEmail] = useState("");
@@ -25,36 +25,36 @@ export default function LoginForm() {
       ? requestedPath
       : "/";
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+const handleLogin = async (e) => {
+  e.preventDefault();
 
-    if (!email.trim() || !password) {
-      return toast.error("Please enter your email and password.");
+  if (!email.trim() || !password) {
+    return toast.error("Please enter your email and password.");
+  }
+
+  setLoading(true);
+
+  try {
+    const { error } = await authClient.signIn.email({
+      email: email.trim().toLowerCase(),
+      password,
+      callbackURL,
+    });
+
+    if (error) {
+      toast.error(error.message || "Invalid email or password.");
+      return;
     }
 
-    setLoading(true);
+    toast.success("Welcome back to BookNook!");
 
-    try {
-      const { error } = await authClient.signIn.email({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-
-      if (error) {
-        toast.error(error.message || "Invalid email or password.");
-        return;
-      }
-
-      toast.success("Welcome back to BookNook!");
-
-      router.replace(callbackURL);
-      router.refresh();
-    } catch {
-      toast.error("Unable to login. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    window.location.replace(callbackURL);
+  } catch {
+    toast.error("Unable to login. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleForgotPassword = () => {
     toast.info("Password reset is not enabled for this assignment.");

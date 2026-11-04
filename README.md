@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# BookNook – A Small Online Library
 
-## Getting Started
+BookNook is a small online library where readers can discover books, add titles to a shared collection, borrow available copies, and return them.
 
-First, run the development server:
+**Live website:** Pending deployment. Add the deployed client URL here after publishing.
+
+## Features
+
+- Browse the full book collection and view recently added books.
+- Register and sign in with email/password or Google (when OAuth credentials are configured).
+- Add books with a cover image, category, description, and total copy count.
+- Manage your own books: edit details or delete books that are not currently borrowed.
+- Borrow books for a seven-day period and return them from the My Borrows table.
+- Track available copies and prevent users from borrowing the same book twice at the same time.
+- Protected routes and API requests using Better Auth sessions and JWT verification.
+
+## Tech Stack
+
+- **Client:** Next.js App Router, React, JavaScript, CSS, Swiper, Sonner
+- **Authentication:** Better Auth, MongoDB Adapter, JWT plugin
+- **Server:** Express.js, MongoDB, `jose`
+- **Book cover uploads:** ImgBB
+
+## Project Structure
+
+```text
+BookNook/
+├── client/   # Next.js application
+└── server/   # Express API
+```
+
+## Run Locally
+
+Use a current Node.js LTS release. Install dependencies separately in both folders.
+
+### 1. Start the API server
+
+```bash
+cd server
+npm install
+```
+
+Copy `.env.example` to `.env`, fill in your MongoDB connection details and local client/auth URLs, then run:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The API runs on `http://localhost:5000` by default.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### 2. Start the Next.js client
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open a second terminal:
 
-## Learn More
+```bash
+cd client
+npm install
+```
 
-To learn more about Next.js, take a look at the following resources:
+Copy `.env.example` to `.env.local` and fill in the required values. Then run:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open `http://localhost:3000`.
 
-## Deploy on Vercel
+## Environment Variables
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+See `client/.env.example` and `server/.env.example` for the required variable names. Never commit `.env`, `.env.local`, real API keys, OAuth secrets, or database credentials.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment Notes
+
+Deploy the client and API separately. Set the production client URL in the server's `CLIENT_URL` and `AUTH_BASE_URL`, and set the same production client origin in `BETTER_AUTH_URL`. Set `NEXT_PUBLIC_API_URL` to the deployed API base URL. Configure the Google OAuth callback URL in Google Cloud to match the deployed Better Auth callback endpoint. After deployment, replace the live website placeholder at the top of this README.

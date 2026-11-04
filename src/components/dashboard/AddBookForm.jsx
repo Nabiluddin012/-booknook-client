@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -32,6 +32,7 @@ export default function AddBookForm() {
 
   const [preview, setPreview] = useState("");
   const [imageFile, setImageFile] = useState(null);
+  const previewUrlRef = useRef(null);
   const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
@@ -42,23 +43,31 @@ export default function AddBookForm() {
     totalCopies: "1",
   });
 
-  useEffect(() => {
-    if (!imageFile) {
-      setPreview("");
-      return;
+  const handleImageSelection = (file) => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
     }
 
-    const imageURL = URL.createObjectURL(imageFile);
-    setPreview(imageURL);
+    const nextPreview = file ? URL.createObjectURL(file) : "";
+    previewUrlRef.current = nextPreview || null;
 
-    return () => URL.revokeObjectURL(imageURL);
-  }, [imageFile]);
+    setImageFile(file);
+    setPreview(nextPreview);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isPending && !session?.user) {
       router.replace("/login?callbackUrl=%2Fadd-book");
     }
-  }, [isPending, session?.user?.id, router]);
+  }, [isPending, session?.user, router]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -294,7 +303,7 @@ export default function AddBookForm() {
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
                 onChange={(e) =>
-                  setImageFile(e.target.files?.[0] || null)
+                  handleImageSelection(e.target.files?.[0] || null)
                 }
                 hidden
               />
@@ -304,7 +313,7 @@ export default function AddBookForm() {
               <button
                 type="button"
                 className="remove-image-button"
-                onClick={() => setImageFile(null)}
+                onClick={() => handleImageSelection(null)}
               >
                 <X size={15} /> Remove Image
               </button>
