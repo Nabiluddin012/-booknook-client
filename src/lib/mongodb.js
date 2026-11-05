@@ -1,4 +1,5 @@
 import { MongoClient } from "mongodb";
+import { attachDatabasePool } from "@vercel/functions";
 
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.DB_NAME;
@@ -13,15 +14,20 @@ if (!dbName) {
 
 const globalForMongo = globalThis;
 
-const client =
-  globalForMongo.mongoClient ||
-  new MongoClient(uri, {
-    maxPoolSize: 10,
-    serverSelectionTimeoutMS: 10000,
+let client = globalForMongo.mongoClient;
+
+if (!client) {
+  client = new MongoClient(uri, {
+    maxPoolSize: 15,
+    minPoolSize: 0,
+    maxIdleTimeMS: 10000,
+    serverSelectionTimeoutMS: 30000,
   });
 
-// Reuse the same MongoDB client in every environment.
-globalForMongo.mongoClient = client;
+  attachDatabasePool(client);
+
+  globalForMongo.mongoClient = client;
+}
 
 const db = client.db(dbName);
 
