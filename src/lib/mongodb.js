@@ -14,11 +14,14 @@ if (!dbName) {
 const globalForMongo = globalThis;
 
 const client =
-  globalForMongo.mongoClient || new MongoClient(uri);
+  globalForMongo.mongoClient ||
+  new MongoClient(uri, {
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 10000,
+  });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForMongo.mongoClient = client;
-}
+// Reuse the same MongoDB client in every environment.
+globalForMongo.mongoClient = client;
 
 const db = client.db(dbName);
 
