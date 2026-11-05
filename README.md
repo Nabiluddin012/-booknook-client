@@ -2,7 +2,7 @@
 
 BookNook is a small online library where readers can discover books, add titles to a shared collection, borrow available copies, and return them.
 
-**Live website:** Pending deployment. Add the deployed client URL here after publishing.
+**Live website:** https://booknook-library-delta.vercel.app
 
 ## Features
 
